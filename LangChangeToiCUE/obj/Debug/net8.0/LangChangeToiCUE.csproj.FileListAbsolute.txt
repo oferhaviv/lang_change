@@ -1,0 +1,15 @@
+D:\github\lang_change\LangChangeToiCUE\bin\Debug\net8.0\LangChangeToiCUE.exe
+D:\github\lang_change\LangChangeToiCUE\bin\Debug\net8.0\LangChangeToiCUE.dll
+D:\github\lang_change\LangChangeToiCUE\bin\Debug\net8.0\LangChangeToiCUE.deps.json
+D:\github\lang_change\LangChangeToiCUE\bin\Debug\net8.0\LangChangeToiCUE.runtimeconfig.json
+D:\github\lang_change\LangChangeToiCUE\bin\Debug\net8.0\LangChangeToiCUE.pdb
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.GeneratedMSBuildEditorConfig.editorconfig
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.AssemblyInfoInputs.cache
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.AssemblyInfo.cs
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.csproj.CoreCompileInputs.cache
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.sourcelink.json
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.dll
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\refint\LangChangeToiCUE.dll
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.pdb
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\LangChangeToiCUE.genruntimeconfig.cache
+D:\github\lang_change\LangChangeToiCUE\obj\Debug\net8.0\ref\LangChangeToiCUE.dll
