@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LangChangeToiCUE")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+58669a950ba318db89f0a29c2505c7d12dfb69f9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9523b25df3384a75dd35d0a889d57ea2906a4f35")]
 [assembly: System.Reflection.AssemblyProductAttribute("LangChangeToiCUE")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LangChangeToiCUE")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
