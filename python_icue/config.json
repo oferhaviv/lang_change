@@ -1,0 +1,7 @@
+{
+  "Connection": { "host": "127.0.0.1", "port": 47655 },
+  "Hebrew": {
+    "keys": ["CLK_Q", "CLK_W", "CLK_A", "CLK_L", "CLK_M"],
+    "color": [0, 0, 255, 255]
+  }
+}
