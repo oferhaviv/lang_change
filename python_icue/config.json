@@ -2,6 +2,11 @@
   "Connection": { "host": "127.0.0.1", "port": 47655 },
   "Hebrew": {
     "keys": ["CLK_Q", "CLK_W", "CLK_A", "CLK_L", "CLK_M"],
-    "color": [0, 0, 255, 255]
+    "color": [0, 0, 255, 255],
+    "refresh_enabled": false
+  },
+  "LanguageMap": {
+    "040D": "heb",
+    "0409": "eng"
   }
 }

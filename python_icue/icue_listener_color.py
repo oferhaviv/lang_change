@@ -1,3 +1,5 @@
+import json
+import os
 import cherrypy
 import threading
 import time
@@ -13,14 +15,35 @@ from cuesdk import (
     CorsairSessionState,
 )
 
-HOST = "127.0.0.1"
-PORT = 47655
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_PATH = os.path.join(SCRIPT_DIR, "config.json")
 
-Q_ID = CorsairLedId_Keyboard.CLK_Q   # your enum uses CLK_Q
-BLUE = (0, 0, 255, 255)              # RGBA (alpha 255 = visible)
+def load_config():
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def resolve_key_ids(key_names):
+    ids, missing = [], []
+    for name in key_names:
+        if hasattr(CorsairLedId_Keyboard, name):
+            ids.append(getattr(CorsairLedId_Keyboard, name))
+        else:
+            missing.append(name)
+    if missing:
+        raise ValueError(f"Unknown key names in config: {missing}")
+    return ids
+
+def normalize_rgba(color):
+    if not isinstance(color, (list, tuple)) or len(color) != 4:
+        raise ValueError("color must be [r,g,b,a]")
+    r, g, b, a = (int(x) for x in color)
+    for v in (r, g, b, a):
+        if v < 0 or v > 255:
+            raise ValueError("RGBA values must be 0..255")
+    return (r, g, b, a)
 
 class IcueController:
-    def __init__(self):
+    def __init__(self, key_ids, color_rgba, refresh_enabled=False):
         self.sdk = CueSdk()
         self.device_id = None
 
@@ -28,13 +51,14 @@ class IcueController:
         self._last_state = None
         self._lock = threading.Lock()
 
-        # Optional refresher (off by default)
-        self._refresh_enabled = False
+        self.key_ids = key_ids
+        self.color = color_rgba
+
+        self._refresh_enabled = refresh_enabled
         self._refresh_thread = None
-        self._want_blue = False
+        self._want_on = False
         self._running = True
 
-    # ---------- SDK connection ----------
     def _on_state_changed(self, evt):
         state = getattr(evt, "state", evt)
         self._last_state = state
@@ -63,11 +87,11 @@ class IcueController:
         with self._lock:
             self.device_id = devices[0].device_id
 
-    # ---------- Lighting actions ----------
-    def _set_q_blue_once(self):
+    def _set_keys_once(self, rgba):
         did = self.device_id
-        led = CorsairLedColor(Q_ID, *BLUE)
-        err = self.sdk.set_led_colors(did, [led])
+        r, g, b, a = rgba
+        leds = [CorsairLedColor(kid, r, g, b, a) for kid in self.key_ids]
+        err = self.sdk.set_led_colors(did, leds)
         if err != CorsairError.CE_Success:
             raise RuntimeError(f"set_led_colors failed: {err}")
 
@@ -75,43 +99,38 @@ class IcueController:
         self.ensure_connected()
         did = self.device_id
 
-        # Request shared overlay control
         err = self.sdk.request_control(did, CorsairAccessLevel.CAL_Shared)
         if err != CorsairError.CE_Success:
-            # Fallback to exclusive
             err2 = self.sdk.request_control(did, CorsairAccessLevel.CAL_ExclusiveLightingControl)
             if err2 != CorsairError.CE_Success:
                 raise RuntimeError(f"request_control failed: shared={err}, exclusive={err2}")
 
-        self._set_q_blue_once()
+        self._set_keys_once(self.color)
 
-        # If you later need to keep it above animations, enable refresher:
         with self._lock:
-            self._want_blue = True
+            self._want_on = True
         self._maybe_start_refresher()
 
     def eng(self):
-        # Fail-safe release (works even if not connected yet)
         with self._lock:
-            print (f'system is locked')
             did = self.device_id
 
         if did is None:
-            print('no device id')
             return
+
+        # Clear overlay then release
         try:
-            self.sdk.set_led_colors(did, [CorsairLedColor(Q_ID, 0, 0, 0, 0)])
+            self._set_keys_once((0, 0, 0, 0))
         except Exception:
             pass
+
         try:
             self.sdk.release_control(did)
-            print('released')
             time.sleep(0.05)
         finally:
             with self._lock:
-                self._want_blue = False
+                self._want_on = False
 
-    # ---------- Optional refresher ----------
     def _maybe_start_refresher(self):
         if not self._refresh_enabled:
             return
@@ -123,15 +142,14 @@ class IcueController:
     def _refresh_loop(self):
         while self._running:
             with self._lock:
-                want = self._want_blue
+                want = self._want_on
                 did = self.device_id
             if want and did is not None:
-                # keep Q blue over animations
                 try:
-                    self._set_q_blue_once()
+                    self._set_keys_once(self.color)
                 except Exception:
                     pass
-                time.sleep(0.25)  # 4Hz, very light
+                time.sleep(0.25)
             else:
                 time.sleep(0.5)
 
@@ -140,55 +158,61 @@ class IcueController:
             return {
                 "connected": self.device_id is not None,
                 "device_id": self.device_id,
-                "want_blue": self._want_blue,
+                "want_on": self._want_on,
                 "refresh_enabled": self._refresh_enabled,
                 "last_state": str(self._last_state),
+                "keys": len(self.key_ids),
+                "color": list(self.color),
             }
 
-CTRL = IcueController()
-
 class Api:
+    def __init__(self, ctrl: IcueController):
+        self.ctrl = ctrl
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def status(self):
-        try:
-            return {"ok": True, "status": CTRL.status()}
-        except Exception as e:
-            cherrypy.response.status = 500
-            return {"ok": False, "error": str(e)}
+        return {"ok": True, "status": self.ctrl.status()}
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def heb(self):
-        try:
-            CTRL.heb()
-            return {"ok": True}
-        except Exception as e:
-            cherrypy.response.status = 500
-            return {"ok": False, "error": str(e)}
+        self.ctrl.heb()
+        return {"ok": True}
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def eng(self):
-        try:
-            CTRL.eng()
-            return {"ok": True}
-        except Exception as e:
-            cherrypy.response.status = 500
-            return {"ok": False, "error": str(e)}
+        self.ctrl.eng()
+        return {"ok": True}
 
 def main():
+    cfg = load_config()
+
+    host = cfg["Connection"].get("host", "127.0.0.1")
+    port = int(cfg["Connection"].get("port", 47655))
+
+    heb_cfg = cfg["Hebrew"]
+    key_ids = resolve_key_ids(heb_cfg.get("keys", []))
+    if not key_ids:
+        raise ValueError("Hebrew.keys must contain at least one key")
+    color = normalize_rgba(heb_cfg.get("color", [0, 0, 255, 255]))
+    refresh_enabled = bool(heb_cfg.get("refresh_enabled", False))
+
+    ctrl = IcueController(key_ids, color, refresh_enabled=refresh_enabled)
+    api = Api(ctrl)
+
     cherrypy.config.update({
-        "server.socket_host": HOST,
-        "server.socket_port": PORT,
+        "server.socket_host": host,
+        "server.socket_port": port,
         "log.screen": True,
         "engine.autoreload.on": False,
-        "request.process_request_body": False,
-
+        "request.process_request_body": False
     })
 
-
-    cherrypy.quickstart(Api(), "/")
+    print(f"Loaded {CONFIG_PATH}")
+    print(f"Listening on http://{host}:{port}")
+    cherrypy.quickstart(api, "/")
 
 if __name__ == "__main__":
     main()
