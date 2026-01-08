@@ -1,1 +1,1 @@
-![Alt text describing the image](about/גם אתם מתחילים לכתוב...מהר.. מרימים את הראש ו...מגלים שכתבתם באנגלית או עברית או ... שהתכוונתם אחרת (2).mp4)
+![Alt text describing the image](about/video.mp4)
